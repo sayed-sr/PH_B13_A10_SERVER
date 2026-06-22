@@ -69,41 +69,53 @@ app.get('/api/health', (req, res) => {
 });
 
 // ==========================================
-// AUTHENTICATION & SYNC
+// AUTHENTICATION & SYNC (Handles Form & Google Signups)
 // ==========================================
 app.post('/users/sync', async (req, res) => {
-    const { name, email, image, requestedRole } = req.body;
-    const existingUser = await usersCollection.findOne({ email });
-    
-    if (existingUser) {
+    try {
+        const { name, email, image, requestedRole } = req.body;
+
+        if (!email) {
+            return res.status(400).send({ message: "Email parameter is required for synchronization." });
+        }
+
+        const existingUser = await usersCollection.findOne({ email });
+        
+        if (existingUser) {
+            // Generate a fresh token with their current DB role (e.g., 'vendor' or 'admin')
+            const token = jwt.sign(
+                { email: existingUser.email, role: existingUser.role }, 
+                process.env.ACCESS_TOKEN_SECRET, 
+                { expiresIn: '7d' }
+            );
+            return res.send({ user: existingUser, token });
+        }
+
+        // Setup clear fallback semantics for structured DB storage
+        const newUser = {
+            name: name || email.split('@')[0], // Fallback if Google name field returns undefined
+            email,
+            image: image || "",
+            role: "user", // Base authorization level
+            requestedRole: requestedRole === "vendor" ? "vendor" : "user",
+            vendorVerification: requestedRole === "vendor" ? "pending" : "none",
+            isFraud: false,
+            createdAt: new Date()
+        };
+
+        const result = await usersCollection.insertOne(newUser);
+        
         const token = jwt.sign(
-            { email: existingUser.email, role: existingUser.role }, 
+            { email: newUser.email, role: newUser.role }, 
             process.env.ACCESS_TOKEN_SECRET, 
             { expiresIn: '7d' }
         );
-        return res.send({ user: existingUser, token });
+
+        res.send({ user: { _id: result.insertedId, ...newUser }, token });
+    } catch (error) {
+        console.error("Synchronization Error:", error);
+        res.status(500).send({ message: "Internal server validation synchronization error." });
     }
-
-    const newUser = {
-        name,
-        email,
-        image: image || "",
-        role: "user",
-        requestedRole: requestedRole === "vendor" ? "vendor" : "user",
-        vendorVerification: requestedRole === "vendor" ? "pending" : "none",
-        isFraud: false,
-        createdAt: new Date()
-    };
-
-    const result = await usersCollection.insertOne(newUser);
-    
-    const token = jwt.sign(
-        { email: newUser.email, role: newUser.role }, 
-        process.env.ACCESS_TOKEN_SECRET, 
-        { expiresIn: '7d' }
-    );
-
-    res.send({ user: { _id: result.insertedId, ...newUser }, token });
 });
 
 app.post('/jwt', async (req, res) => {
