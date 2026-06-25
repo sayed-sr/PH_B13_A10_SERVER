@@ -164,7 +164,7 @@ app.post('/jwt', async (req, res) => {
         console.error("JWT Generation Error:", error);
 
 
-        
+
         res.status(500).send({ message: "Internal server error during token generation." });
     }
 });
@@ -177,12 +177,18 @@ app.get('/users', verifyToken, async (req, res) => {
 
 app.patch('/users/:id', verifyToken, async (req, res) => {
     const id = req.params.id;
+
+
     const { role, vendorVerification, isFraud } = req.body;
+
+
     const filter = { _id: new ObjectId(id) };
     const updateDoc = { $set: {} };
     
     if (role) updateDoc.$set.role = role;
     if (vendorVerification) updateDoc.$set.vendorVerification = vendorVerification;
+
+
     if (isFraud !== undefined) updateDoc.$set.isFraud = isFraud;
 
     const result = await usersCollection.updateOne(filter, updateDoc);
@@ -190,6 +196,8 @@ app.patch('/users/:id', verifyToken, async (req, res) => {
     if (isFraud) {
         const vendor = await usersCollection.findOne(filter);
         await ticketsCollection.updateMany(
+
+
             { vendorEmail: vendor.email }, 
             { $set: { verificationStatus: 'rejected', isAdvertised: false } }
         );
@@ -198,6 +206,8 @@ app.patch('/users/:id', verifyToken, async (req, res) => {
 });
 
 app.delete('/users/:id', verifyToken, async (req, res) => {
+
+
     const result = await usersCollection.deleteOne({ _id: new ObjectId(req.params.id) });
     res.send(result);
 });
@@ -209,20 +219,27 @@ app.get('/tickets', async (req, res) => {
     
     if (status) query.verificationStatus = status;
     if (from) query.from = { $regex: from, $options: 'i' };
+
+
     if (to) query.to = { $regex: to, $options: 'i' };
     if (transport) query.transportType = transport;
 
     let sortOptions = { createdAt: -1 };
     if (sort === 'lowToHigh') sortOptions = { price: 1 };
+
+
     if (sort === 'highToLow') sortOptions = { price: -1 };
 
     const parsedPage = parseInt(page) || 1;
+
+
     const parsedLimit = parseInt(limit) || 6;
     const skip = (parsedPage - 1) * parsedLimit;
 
     try {
         const tickets = await ticketsCollection.find(query)
             .sort(sortOptions)
+
             .skip(skip)
             .limit(parsedLimit)
             .toArray();
@@ -230,19 +247,27 @@ app.get('/tickets', async (req, res) => {
         const total = await ticketsCollection.countDocuments(query);
         const totalPages = Math.ceil(total / parsedLimit);
 
+
+
         res.send({ tickets, totalPages: totalPages || 1 });
     } catch (error) {
+
+
         console.error("Database lookup error:", error);
         res.status(500).send({ message: "Internal server error" });
     }
 });
 
 app.get('/tickets/advertised', async (req, res) => {
+
+
     const tickets = await ticketsCollection.find({ isAdvertised: true }).limit(6).toArray();
     res.send(tickets);
 });
 
 app.post('/tickets', verifyToken, async (req, res) => {
+
+
     const vendorCheck = await usersCollection.findOne({ email: req.body.vendorEmail });
     if (vendorCheck?.isFraud) {
         return res.status(403).send({ message: "Fraudulent vendors are forbidden from posting tickets." });
@@ -252,6 +277,8 @@ app.post('/tickets', verifyToken, async (req, res) => {
         ...req.body,
         verificationStatus: 'approved', 
         isAdvertised: false,
+
+        
         createdAt: new Date()
     };
     const result = await ticketsCollection.insertOne(ticketData);
