@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+
+
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
@@ -12,6 +14,8 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECR
 const stripeLib = require('stripe')(stripeSecretKey);
 
 
+
+
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 
@@ -22,10 +26,16 @@ app.use(express.json());
 
 const verifyToken = (req, res, next) => {
     if (!req.headers.authorization) {
+
+
+
         return res.status(401).send({ message: 'Unauthorized access' });
     }
     const token = req.headers.authorization.split(' ')[1];
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+
+
+
         if (err) return res.status(401).send({ message: 'Unauthorized access' });
         req.decoded = decoded;
         next();
@@ -47,8 +57,12 @@ app.use(async (req, res, next) => {
             await client.connect();
         }
         db = client.db("ticketBariDB");
+
+
         usersCollection = db.collection("users");
         ticketsCollection = db.collection("tickets");
+
+        
         bookingsCollection = db.collection("bookings");
         next();
     } catch (err) {
