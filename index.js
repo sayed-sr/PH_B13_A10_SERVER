@@ -391,14 +391,16 @@ app.delete('/bookings/:id', verifyToken, async (req, res) => {
     }
 });
 
-// Safeguard app.listen for local development environment
+
+
+
 if (process.env.NODE_ENV !== 'production') {
     app.listen(port, () => {
         console.log(`Server executing safely on port ${port}`);
     });
 }
 
-// CRITICAL EXPORT FOR VERCEL DEPLOYMENT
+
 module.exports = (req, res) => {
     return app(req, res);
 };
