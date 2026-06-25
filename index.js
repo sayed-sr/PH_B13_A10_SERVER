@@ -460,7 +460,7 @@ app.patch('/verify-payment', verifyToken, async (req, res) => {
             await ticketsCollection.updateOne(
                 { _id: new ObjectId(activeTicketId) },
 
-                
+
                 { $inc: { quantity: -parseInt(quantity || checkBooking.quantity || 0) } }
             );
         }
@@ -487,11 +487,16 @@ app.delete('/bookings/:id', verifyToken, async (req, res) => {
 
 if (process.env.NODE_ENV !== 'production') {
     app.listen(port, () => {
+
+
         console.log(`Server executing safely on port ${port}`);
     });
 }
 
 
+
+
 module.exports = (req, res) => {
+    
     return app(req, res);
 };
