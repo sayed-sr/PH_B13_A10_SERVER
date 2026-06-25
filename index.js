@@ -62,7 +62,7 @@ app.use(async (req, res, next) => {
         usersCollection = db.collection("users");
         ticketsCollection = db.collection("tickets");
 
-        
+
         bookingsCollection = db.collection("bookings");
         next();
     } catch (err) {
@@ -92,9 +92,11 @@ app.post('/users/sync', async (req, res) => {
         const existingUser = await usersCollection.findOne({ email });
         
         if (existingUser) {
-            // Generate a fresh token with their current DB role (e.g., 'vendor' or 'admin')
+            
             const token = jwt.sign(
-                { email: existingUser.email, role: existingUser.role }, 
+                { email: existingUser.email, role: existingUser.role },
+                
+                
                 process.env.ACCESS_TOKEN_SECRET, 
                 { expiresIn: '7d' }
             );
@@ -108,6 +110,9 @@ app.post('/users/sync', async (req, res) => {
             image: image || "",
             role: "user", 
             requestedRole: requestedRole === "vendor" ? "vendor" : "user",
+
+
+
             vendorVerification: requestedRole === "vendor" ? "pending" : "none",
             isFraud: false,
             createdAt: new Date()
@@ -123,6 +128,8 @@ app.post('/users/sync', async (req, res) => {
 
         res.send({ user: { _id: result.insertedId, ...newUser }, token });
     } catch (error) {
+
+
         console.error("Synchronization Error:", error);
         res.status(500).send({ message: "Internal server validation synchronization error." });
     }
@@ -143,13 +150,21 @@ app.post('/jwt', async (req, res) => {
 
         const token = jwt.sign(
             { email: email, role: finalRole }, 
+
+
             process.env.ACCESS_TOKEN_SECRET, 
             { expiresIn: '7d' }
         );
 
         res.send({ token, role: finalRole });
     } catch (error) {
+
+
+
         console.error("JWT Generation Error:", error);
+
+
+        
         res.status(500).send({ message: "Internal server error during token generation." });
     }
 });
