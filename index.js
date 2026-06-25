@@ -37,10 +37,10 @@ const client = new MongoClient(uri, {
   serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
 });
 
-// GLOBAL DATABASE VARIABLES (Accessible globally across all routes)
+
 let db, usersCollection, ticketsCollection, bookingsCollection;
 
-// CRITICAL SERVERLESS MIDDLEWARE: Connects lazily and guarantees DB references exist before running endpoints
+
 app.use(async (req, res, next) => {
     try {
         if (!client.topology || !client.topology.isConnected()) {
@@ -57,9 +57,7 @@ app.use(async (req, res, next) => {
     }
 });
 
-// ==========================================
-// CORE SYSTEM ROUTES (Mounted synchronously)
-// ==========================================
+
 app.get('/', (req, res) => {
     res.send('TicketBari server core engine executing perfectly.');
 });
@@ -68,9 +66,7 @@ app.get('/api/health', (req, res) => {
     res.send({ status: "alive", message: "Vercel serverless routing is fully operational!" });
 });
 
-// ==========================================
-// AUTHENTICATION & SYNC (Handles Form & Google Signups)
-// ==========================================
+
 app.post('/users/sync', async (req, res) => {
     try {
         const { name, email, image, requestedRole } = req.body;
@@ -91,12 +87,12 @@ app.post('/users/sync', async (req, res) => {
             return res.send({ user: existingUser, token });
         }
 
-        // Setup clear fallback semantics for structured DB storage
+
         const newUser = {
-            name: name || email.split('@')[0], // Fallback if Google name field returns undefined
+            name: name || email.split('@')[0], 
             email,
             image: image || "",
-            role: "user", // Base authorization level
+            role: "user", 
             requestedRole: requestedRole === "vendor" ? "vendor" : "user",
             vendorVerification: requestedRole === "vendor" ? "pending" : "none",
             isFraud: false,
@@ -126,6 +122,8 @@ app.post('/jwt', async (req, res) => {
             return res.status(400).send({ message: "Email is required to generate a token." });
         }
 
+
+
         const dbUser = await usersCollection.findOne({ email: email });
         const finalRole = dbUser ? dbUser.role : "user"; 
 
@@ -142,9 +140,7 @@ app.post('/jwt', async (req, res) => {
     }
 });
 
-// ==========================================
-// USER & ADMIN MANAGEMENT APIs
-// ==========================================
+
 app.get('/users', verifyToken, async (req, res) => {
     const users = await usersCollection.find().toArray();
     res.send(users);
