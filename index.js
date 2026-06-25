@@ -278,7 +278,7 @@ app.post('/tickets', verifyToken, async (req, res) => {
         verificationStatus: 'approved', 
         isAdvertised: false,
 
-        
+
         createdAt: new Date()
     };
     const result = await ticketsCollection.insertOne(ticketData);
@@ -298,6 +298,8 @@ app.patch('/tickets/:id', verifyToken, async (req, res) => {
         res.send(result);
     } catch (error) {
         console.error("Error updating ticket:", error);
+
+
         res.status(500).send({ message: "Internal server error updating ticket details" });
     }
 });
@@ -311,6 +313,8 @@ app.delete('/tickets/:id', verifyToken, async (req, res) => {
 
 app.get('/bookings', verifyToken, async (req, res) => {
     const { userEmail, vendorEmail } = req.query;
+
+
     let query = {};
     if (userEmail) query.userEmail = userEmail;
     if (vendorEmail) query.vendorEmail = vendorEmail;
@@ -323,6 +327,9 @@ app.post('/bookings', verifyToken, async (req, res) => {
     const bookingData = {
         ...req.body,
         status: 'pending',
+
+
+
         createdAt: new Date()
     };
     const result = await bookingsCollection.insertOne(bookingData);
@@ -332,7 +339,10 @@ app.post('/bookings', verifyToken, async (req, res) => {
 app.patch('/bookings/:id', verifyToken, async (req, res) => {
     const id = req.params.id;
     const { status } = req.body;
+
+
     const filter = { _id: new ObjectId(id) };
+
     
     const result = await bookingsCollection.updateOne(filter, { $set: { status } });
 
@@ -340,6 +350,9 @@ app.patch('/bookings/:id', verifyToken, async (req, res) => {
         const booking = await bookingsCollection.findOne(filter);
         await ticketsCollection.updateOne(
             { _id: new ObjectId(booking.ticketId) },
+
+
+
             { $inc: { quantity: -booking.quantity } }
         );
     }
@@ -349,10 +362,14 @@ app.patch('/bookings/:id', verifyToken, async (req, res) => {
 app.get('/vendor-stats', verifyToken, async (req, res) => {
     const { email } = req.query;
     const totalTicketsAdded = await ticketsCollection.countDocuments({ vendorEmail: email });
+
+
     const vendorPaidBookings = await bookingsCollection.find({ vendorEmail: email, status: 'paid' }).toArray();
 
     const totalTicketsSold = vendorPaidBookings.reduce((sum, b) => sum + b.quantity, 0);
     const totalRevenue = vendorPaidBookings.reduce((sum, b) => sum + b.totalPrice, 0);
+
+
 
     res.send({ totalTicketsAdded, totalTicketsSold, totalRevenue });
 });
@@ -363,6 +380,9 @@ app.post('/create-checkout-session', verifyToken, async (req, res) => {
 
     try {
         const currentTicket = await ticketsCollection.findOne({ _id: new ObjectId(ticketId) });
+
+
+
         if (!currentTicket || currentTicket.quantity < parseInt(quantity)) {
             return res.status(400).send({ message: "Requested slots are no longer available in inventory stock." });
         }
@@ -370,6 +390,8 @@ app.post('/create-checkout-session', verifyToken, async (req, res) => {
         const session = await stripeLib.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [{
+
+
                 price_data: {
                     currency: 'usd',
                     product_data: { name: title },
@@ -378,6 +400,8 @@ app.post('/create-checkout-session', verifyToken, async (req, res) => {
                 quantity: parseInt(quantity),
             }],
             mode: 'payment',
+
+
             success_url: `${frontendUrl}/bookings/success?bookingId=${bookingId}&ticketId=${ticketId}&qty=${quantity}&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${frontendUrl}/dashboard/user`,
         });
@@ -385,11 +409,16 @@ app.post('/create-checkout-session', verifyToken, async (req, res) => {
         res.send({ url: session.url });
     } catch (error) {
         console.error("Stripe gateway payload failure context:", error);
+
+
+
         res.status(500).send({ message: "Payment session initialization failed" });
     }
 });
 
 app.patch('/verify-payment', verifyToken, async (req, res) => {
+
+
     const { bookingId, ticketId, quantity, sessionId } = req.body;
 
     try {
@@ -399,6 +428,8 @@ app.patch('/verify-payment', verifyToken, async (req, res) => {
 
         const session = await stripeLib.checkout.sessions.retrieve(sessionId);
         if (session.payment_status !== 'paid') {
+
+
             return res.status(400).send({ message: "Transaction verification incomplete." });
         }
 
@@ -416,6 +447,8 @@ app.patch('/verify-payment', verifyToken, async (req, res) => {
             { 
                 $set: { 
                     status: 'paid', 
+
+
                     transactionId: session.id, 
                     paymentDate: new Date()    
                 } 
@@ -426,6 +459,8 @@ app.patch('/verify-payment', verifyToken, async (req, res) => {
         if (activeTicketId) {
             await ticketsCollection.updateOne(
                 { _id: new ObjectId(activeTicketId) },
+
+                
                 { $inc: { quantity: -parseInt(quantity || checkBooking.quantity || 0) } }
             );
         }
