@@ -173,9 +173,7 @@ app.delete('/users/:id', verifyToken, async (req, res) => {
     res.send(result);
 });
 
-// ==========================================
-// TICKET MANAGEMENT APIs
-// ==========================================
+
 app.get('/tickets', async (req, res) => {
     const { from, to, transport, sort, page = 1, limit = 6, status } = req.query;
     const query = {};
@@ -253,9 +251,8 @@ app.delete('/tickets/:id', verifyToken, async (req, res) => {
     res.send(result);
 });
 
-// ==========================================
-// RESERVATION & BOOKING APIs
-// ==========================================
+
+
 app.get('/bookings', verifyToken, async (req, res) => {
     const { userEmail, vendorEmail } = req.query;
     let query = {};
@@ -304,9 +301,7 @@ app.get('/vendor-stats', verifyToken, async (req, res) => {
     res.send({ totalTicketsAdded, totalTicketsSold, totalRevenue });
 });
 
-// ==========================================
-// SECURE STRIPE CHECKOUT ROUTE INTEGRATION
-// ==========================================
+
 app.post('/create-checkout-session', verifyToken, async (req, res) => {
     const { bookingId, title, totalPrice, quantity, ticketId } = req.body;
 
